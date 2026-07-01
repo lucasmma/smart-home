@@ -60,7 +60,8 @@ if ! id -nG "$USER" | grep -qw docker; then
 fi
 
 # --- 4. free port 53 (systemd-resolved) -------------------------------------
-if ss -tulpn 2>/dev/null | grep -q '127.0.0.53:53'; then
+# Match any listener on :53 (systemd-resolved binds e.g. 127.0.0.53%lo:53).
+if ss -tuln 2>/dev/null | grep -qE ':53 '; then
   info "Freeing port 53 from systemd-resolved (needed by Pi-hole)..."
   sudo mkdir -p /etc/systemd/resolved.conf.d
   printf '[Resolve]\nDNSStubListener=no\n' \

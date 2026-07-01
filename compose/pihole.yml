@@ -39,11 +39,14 @@ services:
       - ${DATA_ROOT}/volumes/pihole/etc-pihole:/etc/pihole
       - ${DATA_ROOT}/configs/pihole/dnsmasq.d:/etc/dnsmasq.d:ro
 
-    # Least privilege: only NET_ADMIN (required for DNS binding & optional DHCP).
+    # NET_ADMIN is required for DNS binding & optional DHCP.
     cap_add:
       - NET_ADMIN
-    security_opt:
-      - no-new-privileges:true
+    # NOTE: intentionally NO `no-new-privileges` here. Pi-hole v6's FTL runs as a
+    # non-root user (UID 1000) and relies on file capabilities (setcap) on the
+    # pihole-FTL binary to bind privileged ports 53/67/123. `no_new_privs`
+    # disables file capabilities on exec, so DNS would fail to bind. NET_BIND_SERVICE
+    # is already in Docker's default capability set.
 
     # 4 GB Pi: cap memory. Pi-hole idles around ~120 MB.
     mem_limit: 256m
