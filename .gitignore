@@ -2,8 +2,6 @@
 .env
 *.secret
 secrets/
-# Speedtest Tracker scrape token (the .example template IS committed)
-configs/prometheus/speedtest_token
 
 # --- Persistent runtime data (never in git) ---
 volumes/*

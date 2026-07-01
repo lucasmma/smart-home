@@ -32,14 +32,13 @@ scrape_configs:
   #     - targets: ["pihole-exporter:9617"]
 
   # --- Internet speed/latency via Speedtest Tracker ---
-  # The bearer token is created in the Speedtest UI and written to
-  # configs/prometheus/speedtest_token (see docs/speedtest-tracker.md).
+  # Enable it in the Speedtest UI first: Settings -> Data Integration ->
+  # Prometheus -> toggle on. The endpoint is /prometheus and is gated by an
+  # IP allow-list (NOT a token): leave "allowed IPs" blank to allow the homelab
+  # network, or add the docker bridge subnet. See docs/speedtest-tracker.md.
   - job_name: speedtest
     scheme: http
-    metrics_path: /api/v1/prometheus
+    metrics_path: /prometheus
     scrape_interval: 5m          # tests run hourly; no need to scrape often
-    authorization:
-      type: Bearer
-      credentials_file: /etc/prometheus/speedtest_token
     static_configs:
       - targets: ["speedtest-tracker:80"]

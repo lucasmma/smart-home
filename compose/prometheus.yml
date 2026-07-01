@@ -28,9 +28,6 @@ services:
     volumes:
       - ${DATA_ROOT}/configs/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ${DATA_ROOT}/volumes/prometheus/data:/prometheus
-      # Bearer token used to scrape Speedtest Tracker's metrics (git-ignored).
-      # Created once in the Speedtest UI; see docs/speedtest-tracker.md.
-      - ${DATA_ROOT}/configs/prometheus/speedtest_token:/etc/prometheus/speedtest_token:ro
 
     ports:
       - "9090:9090"                        # web UI / query API
