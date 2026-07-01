@@ -6,7 +6,7 @@
           href: https://gethomepage.dev/
     - This repo's docs:
         - abbr: DOC
-          href: https://github.com/  # <- replace with your repo URL
+          href: https://github.com/lucasmma/smart-home
 
 - Admin:
     - Tailscale admin:

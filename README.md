@@ -112,7 +112,7 @@ home-server/
 
 ```bash
 # 1. Clone onto the Pi
-git clone <your-repo-url> home-server
+git clone https://github.com/lucasmma/smart-home.git home-server
 cd home-server
 
 # 2. Bootstrap the host (Docker, host prep, network, .env, volume perms)
