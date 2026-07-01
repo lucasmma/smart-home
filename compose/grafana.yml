@@ -1,0 +1,68 @@
+# =============================================================================
+#  Grafana — dashboards & visualization
+#
+#  Docs:  docs/grafana.md
+#  Auto-provisions the Prometheus datasource and dashboards from config files
+#  (no manual imports). Queries Prometheus at http://prometheus:9090.
+# =============================================================================
+
+services:
+  grafana:
+    image: grafana/grafana-oss:${GRAFANA_VERSION:-latest}
+    container_name: grafana
+    hostname: grafana
+    restart: unless-stopped
+
+    # Grafana's image runs as uid 472. The bind-mounted data dir must be owned
+    # by 472:472 (install.sh handles this).
+    user: "472:472"
+
+    environment:
+      TZ: ${TZ}
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      # Lock it down: no public sign-up, no anonymous access.
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      # Kill phone-home / update nag / news feed (privacy + a little RAM).
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_NEWS_NEWS_FEED_ENABLED: "false"
+      GF_LOG_LEVEL: "warn"
+
+    volumes:
+      - ${DATA_ROOT}/volumes/grafana/data:/var/lib/grafana
+      - ${DATA_ROOT}/configs/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ${DATA_ROOT}/configs/grafana/dashboards:/var/lib/grafana/dashboards:ro
+
+    ports:
+      - "3000:3000"
+
+    networks:
+      - homelab
+
+    depends_on:
+      - prometheus
+
+    security_opt:
+      - no-new-privileges:true
+
+    mem_limit: 256m
+
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  homelab:
+    external: true
+    name: homelab

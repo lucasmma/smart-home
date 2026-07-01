@@ -1,0 +1,49 @@
+# =============================================================================
+#  Uptime Kuma — self-hosted uptime / status monitoring
+#
+#  Docs:  docs/uptime-kuma.md
+#  Watches your services (and anything else) for reachability & response time.
+# =============================================================================
+
+services:
+  uptime-kuma:
+    image: louislam/uptime-kuma:${UPTIME_KUMA_VERSION:-2.4.0}
+    container_name: uptime-kuma
+    hostname: uptime-kuma
+    restart: unless-stopped
+
+    environment:
+      TZ: ${TZ}
+
+    volumes:
+      - ${DATA_ROOT}/volumes/uptime-kuma/data:/app/data
+
+    ports:
+      - "3001:3001"
+
+    networks:
+      - homelab
+
+    security_opt:
+      - no-new-privileges:true
+
+    mem_limit: 256m
+
+    # The image ships its own healthcheck helper.
+    healthcheck:
+      test: ["CMD", "extra/healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  homelab:
+    external: true
+    name: homelab

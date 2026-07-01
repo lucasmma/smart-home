@@ -1,0 +1,62 @@
+# =============================================================================
+#  cAdvisor — per-container resource metrics (Google)
+#
+#  Docs:  docs/cadvisor.md
+#  Exposes CPU/RAM/network/IO for every running container; Prometheus scrapes
+#  it at cadvisor:8080. Built-in web UI published on :8080.
+#
+#  Runs NON-privileged (per project policy) using explicit read-only mounts.
+#  If per-container metrics are missing on your kernel, see docs/cadvisor.md
+#  (the documented fallback is `privileged: true`).
+# =============================================================================
+
+services:
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:${CADVISOR_VERSION:-latest}
+    container_name: cadvisor
+    hostname: cadvisor
+    restart: unless-stopped
+
+    command:
+      - "--housekeeping_interval=30s"   # match Prometheus scrape; lighter on the Pi
+      - "--docker_only=true"            # ignore non-Docker cgroups (less noise/RAM)
+      - "--store_container_labels=false"
+
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+
+    devices:
+      - /dev/kmsg:/dev/kmsg
+
+    ports:
+      - "8080:8080"                     # cAdvisor web UI
+
+    networks:
+      - homelab
+
+    security_opt:
+      - no-new-privileges:true
+
+    mem_limit: 256m
+
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  homelab:
+    external: true
+    name: homelab

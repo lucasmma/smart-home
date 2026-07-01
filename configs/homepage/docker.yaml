@@ -1,0 +1,13 @@
+# Optional Docker integration.
+#
+# Left EMPTY on purpose: by default Homepage does NOT read the Docker socket
+# (least privilege). Services are listed declaratively in services.yaml.
+#
+# To enable label-based auto-discovery instead, you would:
+#   1. Mount the socket read-only into the homepage container:
+#        - /var/run/docker.sock:/var/run/docker.sock:ro
+#   2. Define the socket here:
+#        my-docker:
+#          socket: /var/run/docker.sock
+#   3. Add `homepage.*` labels to each service in its compose file.
+# See: https://gethomepage.dev/configs/docker/

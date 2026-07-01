@@ -1,0 +1,25 @@
+# --- Secrets ---
+.env
+*.secret
+secrets/
+# Speedtest Tracker scrape token (the .example template IS committed)
+configs/prometheus/speedtest_token
+
+# --- Persistent runtime data (never in git) ---
+volumes/*
+!volumes/.gitkeep
+# Keep the per-service folder structure but not its contents:
+!volumes/*/
+volumes/*/**
+
+# --- OS / editor cruft ---
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/
+
+# --- Backups produced by scripts/backup.sh ---
+backups/
+*.tar.gz

@@ -1,0 +1,60 @@
+# =============================================================================
+#  Speedtest Tracker — scheduled internet speed/latency tests + history
+#
+#  Docs:  docs/speedtest-tracker.md
+#  Runs Ookla speedtest on a cron schedule, stores results (SQLite), shows a web
+#  UI, and exposes Prometheus metrics at /api/v1/prometheus (token-protected).
+# =============================================================================
+
+services:
+  speedtest-tracker:
+    image: lscr.io/linuxserver/speedtest-tracker:${SPEEDTEST_VERSION:-latest}
+    container_name: speedtest-tracker
+    hostname: speedtest-tracker
+    restart: unless-stopped
+
+    environment:
+      PUID: ${PUID}
+      PGID: ${PGID}
+      TZ: ${TZ}
+      APP_URL: http://${SERVER_IP}:8083
+      # Laravel encryption key — REQUIRED. Generate once (see .env.example):
+      #   echo "base64:$(openssl rand -base64 32)"
+      APP_KEY: ${SPEEDTEST_APP_KEY}
+      DB_CONNECTION: sqlite
+      # Cron schedule for tests (default: hourly). Keep it modest on the Pi.
+      SPEEDTEST_SCHEDULE: ${SPEEDTEST_SCHEDULE:-0 * * * *}
+      # Auto-delete results older than N days (keeps SQLite small).
+      PRUNE_RESULTS_OLDER_THAN: ${SPEEDTEST_PRUNE_DAYS:-90}
+
+    volumes:
+      - ${DATA_ROOT}/volumes/speedtest-tracker/config:/config
+
+    ports:
+      - "8083:80"
+
+    networks:
+      - homelab
+
+    security_opt:
+      - no-new-privileges:true
+
+    mem_limit: 384m
+
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:80/api/healthcheck"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  homelab:
+    external: true
+    name: homelab

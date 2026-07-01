@@ -1,0 +1,58 @@
+# =============================================================================
+#  Homepage — the dashboard / landing page for the whole stack
+#
+#  Docs:  docs/homepage.md
+#  File-configured (configs/homepage/*.yml). Shows a link card per service and
+#  live-status widgets for several of them.
+# =============================================================================
+
+services:
+  homepage:
+    image: ghcr.io/gethomepage/homepage:${HOMEPAGE_VERSION:-latest}
+    container_name: homepage
+    hostname: homepage
+    restart: unless-stopped
+
+    environment:
+      TZ: ${TZ}
+      # Required by recent Homepage: allow-list the Host header(s) you use.
+      HOMEPAGE_ALLOWED_HOSTS: ${HOMEPAGE_ALLOWED_HOSTS}
+      # Values referenced in the YAML as {{HOMEPAGE_VAR_*}} (keeps IP/secrets
+      # out of the committed config).
+      HOMEPAGE_VAR_SERVER_IP: ${SERVER_IP}
+      HOMEPAGE_VAR_PIHOLE_PASSWORD: ${PIHOLE_PASSWORD}
+      HOMEPAGE_VAR_GRAFANA_USER: ${GRAFANA_ADMIN_USER}
+      HOMEPAGE_VAR_GRAFANA_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+
+    volumes:
+      # Read-write: Homepage creates any missing config files on first run.
+      - ${DATA_ROOT}/configs/homepage:/app/config
+
+    ports:
+      - "80:3000"
+
+    networks:
+      - homelab
+
+    security_opt:
+      - no-new-privileges:true
+
+    mem_limit: 256m
+
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  homelab:
+    external: true
+    name: homelab

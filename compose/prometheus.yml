@@ -1,0 +1,62 @@
+# =============================================================================
+#  Prometheus — metrics time-series database & scraper
+#
+#  Docs:  docs/prometheus.md
+#  Scrapes Node Exporter, cAdvisor, Pi-hole & Speedtest; queried by Grafana.
+# =============================================================================
+
+services:
+  prometheus:
+    image: prom/prometheus:${PROMETHEUS_VERSION:-latest}
+    container_name: prometheus
+    hostname: prometheus
+    restart: unless-stopped
+
+    # Runs as `nobody`. The bind-mounted TSDB dir must be owned by this uid
+    # (install.sh chowns volumes/prometheus/data to 65534:65534).
+    user: "65534:65534"
+
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+      - "--storage.tsdb.retention.size=2GB"
+      - "--web.enable-lifecycle"          # allows `POST /-/reload` for hot config reloads
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+
+    volumes:
+      - ${DATA_ROOT}/configs/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ${DATA_ROOT}/volumes/prometheus/data:/prometheus
+      # Bearer token used to scrape Speedtest Tracker's metrics (git-ignored).
+      # Created once in the Speedtest UI; see docs/speedtest-tracker.md.
+      - ${DATA_ROOT}/configs/prometheus/speedtest_token:/etc/prometheus/speedtest_token:ro
+
+    ports:
+      - "9090:9090"                        # web UI / query API
+
+    networks:
+      - homelab
+
+    security_opt:
+      - no-new-privileges:true
+
+    mem_limit: 512m
+
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  homelab:
+    external: true
+    name: homelab

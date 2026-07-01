@@ -1,0 +1,16 @@
+# Auto-provisioned datasource. Grafana loads this on startup — no UI clicks.
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    # Fixed uid so dashboards can reference it deterministically.
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      # Match Prometheus' scrape interval for sensible auto-step.
+      timeInterval: "30s"
+      httpMethod: POST

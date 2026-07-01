@@ -1,0 +1,51 @@
+name: CI
+
+# Lints the whole repo on every push / PR:
+#  - the merged Docker Compose config is valid
+#  - shell scripts pass ShellCheck
+#  - all YAML and JSON config parses
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Seed .env (from the committed example)
+        run: cp .env.example .env
+
+      - name: Validate merged Compose config
+        run: docker compose config -q
+
+      - name: List services (sanity)
+        run: docker compose config --services | sort
+
+      - name: ShellCheck scripts
+        run: shellcheck -S warning scripts/*.sh
+
+      - name: Validate YAML & JSON
+        run: |
+          python3 -m pip install --quiet --disable-pip-version-check pyyaml
+          python3 - <<'PY'
+          import glob, json, sys, yaml
+          errors = 0
+          for f in glob.glob("**/*.y*ml", recursive=True):
+              if f.startswith(".git"):
+                  continue
+              try:
+                  list(yaml.safe_load_all(open(f)))
+              except Exception as e:
+                  print(f"YAML ERROR {f}: {e}"); errors += 1
+          for f in glob.glob("**/*.json", recursive=True):
+              try:
+                  json.load(open(f))
+              except Exception as e:
+                  print(f"JSON ERROR {f}: {e}"); errors += 1
+          print("YAML/JSON validation:", "OK" if not errors else f"{errors} error(s)")
+          sys.exit(1 if errors else 0)
+          PY

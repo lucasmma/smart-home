@@ -1,0 +1,64 @@
+# =============================================================================
+#  Pi-hole — network-wide DNS sinkhole / ad-blocker (also your LAN DNS server)
+#
+#  Docs:  docs/pihole.md
+#  Image: https://github.com/pi-hole/docker-pi-hole  (v6, single-container FTL)
+#
+#  NOTE: runs in host-network mode (see docs/pihole.md for why) so it does NOT
+#  attach to the `homelab` bridge. Other services reach it via ${SERVER_IP}.
+# =============================================================================
+
+services:
+  pihole:
+    image: pihole/pihole:${PIHOLE_VERSION:-latest}
+    container_name: pihole
+    hostname: pihole
+    restart: unless-stopped
+
+    # Host networking preserves real LAN client IPs in query logs/stats.
+    network_mode: host
+
+    environment:
+      TZ: ${TZ}
+      # --- Admin web UI password (v6 uses FTLCONF_* keys) ---
+      FTLCONF_webserver_api_password: ${PIHOLE_PASSWORD}
+      # --- Move the web UI off :80/:443 so Homepage can use them.
+      #     Suffixes: o = don't fail if busy, s = TLS, r = redirect ---
+      FTLCONF_webserver_port: "8081o,8443os"
+      # --- Upstream resolvers used by Pi-hole to answer non-blocked queries ---
+      FTLCONF_dns_upstreams: "1.1.1.1;1.0.0.1"
+      # --- Answer queries arriving on any interface (needed for LAN clients) ---
+      FTLCONF_dns_listeningMode: "all"
+      # --- Only serve clients on your LAN subnet (defense in depth) ---
+      FTLCONF_dns_queryLogging: "true"
+      # --- Allow custom dnsmasq snippets mounted at /etc/dnsmasq.d ---
+      FTLCONF_misc_etc_dnsmasq_d: "true"
+
+    # Persist config + gravity/FTL databases across recreates & reboots.
+    volumes:
+      - ${DATA_ROOT}/volumes/pihole/etc-pihole:/etc/pihole
+      - ${DATA_ROOT}/configs/pihole/dnsmasq.d:/etc/dnsmasq.d:ro
+
+    # Least privilege: only NET_ADMIN (required for DNS binding & optional DHCP).
+    cap_add:
+      - NET_ADMIN
+    security_opt:
+      - no-new-privileges:true
+
+    # 4 GB Pi: cap memory. Pi-hole idles around ~120 MB.
+    mem_limit: 256m
+
+    # The image ships a built-in HEALTHCHECK (FTL self-check); this makes the
+    # DNS-answering path the explicit signal so `docker ps` health is meaningful.
+    healthcheck:
+      test: ["CMD-SHELL", "dig +short +norecurse +retry=0 @127.0.0.1 pi.hole || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

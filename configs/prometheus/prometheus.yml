@@ -1,0 +1,45 @@
+# =============================================================================
+#  Prometheus scrape configuration
+#  Reload after editing:  docker exec prometheus kill -HUP 1
+#                    or:  curl -X POST http://<SERVER_IP>:9090/-/reload
+# =============================================================================
+
+global:
+  scrape_interval: 30s        # gentle on the Pi; default is 15s
+  evaluation_interval: 30s
+  external_labels:
+    monitor: home-server
+
+scrape_configs:
+  # --- Prometheus itself ---
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # --- Host metrics: CPU, RAM, disk, temperature, network (added next) ---
+  - job_name: node-exporter
+    static_configs:
+      - targets: ["node-exporter:9100"]
+
+  # --- Per-container metrics: CPU/RAM/net/io per Docker container (added next) ---
+  - job_name: cadvisor
+    static_configs:
+      - targets: ["cadvisor:8080"]
+
+  # --- Pi-hole metrics via pihole-exporter (enabled with the Pi-hole exporter) ---
+  # - job_name: pihole
+  #   static_configs:
+  #     - targets: ["pihole-exporter:9617"]
+
+  # --- Internet speed/latency via Speedtest Tracker ---
+  # The bearer token is created in the Speedtest UI and written to
+  # configs/prometheus/speedtest_token (see docs/speedtest-tracker.md).
+  - job_name: speedtest
+    scheme: http
+    metrics_path: /api/v1/prometheus
+    scrape_interval: 5m          # tests run hourly; no need to scrape often
+    authorization:
+      type: Bearer
+      credentials_file: /etc/prometheus/speedtest_token
+    static_configs:
+      - targets: ["speedtest-tracker:80"]

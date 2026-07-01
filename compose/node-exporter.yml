@@ -1,0 +1,60 @@
+# =============================================================================
+#  Node Exporter — host (Raspberry Pi) hardware & OS metrics
+#
+#  Docs:  docs/node-exporter.md
+#  Exposes CPU, RAM, disk, filesystem, network and TEMPERATURE metrics that
+#  Prometheus scrapes at node-exporter:9100. Not published to the LAN.
+#
+#  All host readings come from the bind-mounted /proc, /sys and / (read-only),
+#  so metrics reflect the HOST even though this runs on the bridge network.
+# =============================================================================
+
+services:
+  node-exporter:
+    image: prom/node-exporter:${NODE_EXPORTER_VERSION:-latest}
+    container_name: node-exporter
+    hostname: node-exporter
+    restart: unless-stopped
+
+    # Seeing all host PIDs improves several collectors; read-only, safe.
+    pid: host
+
+    command:
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+      - "--path.rootfs=/rootfs"
+      # Don't report Docker/virtual mounts as "disks".
+      - "--collector.filesystem.mount-points-exclude=^/(dev|proc|sys|run|var/lib/docker/.+|rootfs/.+)($$|/)"
+      - "--collector.filesystem.fs-types-exclude=^(autofs|binfmt_misc|cgroup|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|mqueue|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|sysfs|tracefs)$$"
+      # thermal_zone collector = Raspberry Pi CPU temperature.
+
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro,rslave
+
+    networks:
+      - homelab
+
+    security_opt:
+      - no-new-privileges:true
+
+    mem_limit: 128m
+
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9100/metrics"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  homelab:
+    external: true
+    name: homelab

@@ -1,0 +1,40 @@
+# =============================================================================
+#  home-server — root aggregator
+#
+#  This file does NOT define services directly. It uses Compose's native
+#  `include:` directive to pull in one self-contained file per service from
+#  ./compose/. Bring the whole stack up with:
+#
+#       docker compose up -d
+#
+#  To disable a service, comment out its line below (it will be stopped on the
+#  next `docker compose up -d --remove-orphans`).
+#
+#  Requires Docker Compose v2.20+ (ships with Docker Engine on Ubuntu 24.04).
+# =============================================================================
+
+include:
+  # --- Networking ---
+  - compose/pihole.yml
+  # --- Monitoring ---
+  - compose/prometheus.yml
+  - compose/node-exporter.yml
+  - compose/cadvisor.yml
+  - compose/grafana.yml
+  - compose/uptime-kuma.yml
+  # --- Logging ---
+  - compose/dozzle.yml
+  # --- Dashboard ---
+  - compose/homepage.yml
+  # --- Internet quality ---
+  - compose/speedtest-tracker.yml
+  # --- Remote access ---
+  - compose/tailscale.yml
+
+# The shared network is created out-of-band by scripts/install.sh so that all
+# service files can attach to it as `external`. This keeps each compose file
+# independently valid and avoids one file "owning" the network.
+networks:
+  homelab:
+    external: true
+    name: homelab

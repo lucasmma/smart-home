@@ -1,0 +1,61 @@
+# =============================================================================
+#  Tailscale — secure remote access (WireGuard mesh VPN), no port forwarding
+#
+#  Docs:  docs/tailscale.md
+#  Runs in host-network + kernel mode so the Pi gets a tailnet IP/MagicDNS name;
+#  ALL published service ports are then reachable remotely at that address.
+#
+#  Requires host IP forwarding (install.sh sets net.ipv4.ip_forward=1).
+# =============================================================================
+
+services:
+  tailscale:
+    image: tailscale/tailscale:${TAILSCALE_VERSION:-latest}
+    container_name: tailscale
+    hostname: ${TAILSCALE_HOSTNAME:-home-server}
+    restart: unless-stopped
+
+    # Host mode: the tailnet interface lives on the host, so host-published
+    # ports become reachable over the tailnet with no extra routing.
+    network_mode: host
+
+    environment:
+      TS_AUTHKEY: ${TAILSCALE_AUTHKEY}
+      TS_HOSTNAME: ${TAILSCALE_HOSTNAME:-home-server}
+      TS_STATE_DIR: /var/lib/tailscale
+      # Kernel networking (a real tailscale0 interface) — needed to reach host
+      # services. Do NOT set userspace mode here.
+      TS_USERSPACE: "false"
+      # Don't let Tailscale MagicDNS hijack the host resolver — Pi-hole is DNS.
+      TS_ACCEPT_DNS: "false"
+      # Optional: advertise LAN subnet to the tailnet (default: none). e.g.
+      # TAILSCALE_ROUTES=192.168.1.0/24  -> reach OTHER LAN devices remotely.
+      TS_ROUTES: ${TAILSCALE_ROUTES:-}
+      # Optional extras, e.g. --advertise-exit-node
+      TS_EXTRA_ARGS: ${TAILSCALE_EXTRA_ARGS:-}
+
+    volumes:
+      - ${DATA_ROOT}/volumes/tailscale/state:/var/lib/tailscale
+
+    devices:
+      - /dev/net/tun:/dev/net/tun
+
+    cap_add:
+      - NET_ADMIN
+    security_opt:
+      - no-new-privileges:true
+
+    mem_limit: 128m
+
+    healthcheck:
+      test: ["CMD-SHELL", "tailscale status >/dev/null 2>&1 || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

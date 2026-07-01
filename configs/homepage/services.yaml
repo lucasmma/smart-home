@@ -1,0 +1,55 @@
+# Homepage services. Docs: https://gethomepage.dev/configs/services/
+# URLs use {{HOMEPAGE_VAR_SERVER_IP}} (injected from .env) so there is no
+# hardcoded IP. Widgets pull live status; links always work regardless.
+
+- Networking:
+    - Pi-hole:
+        href: http://{{HOMEPAGE_VAR_SERVER_IP}}:8081/admin
+        description: Network-wide DNS & ad-blocker
+        icon: pi-hole.png
+        widget:
+          type: pihole
+          url: http://{{HOMEPAGE_VAR_SERVER_IP}}:8081
+          version: 6
+          key: "{{HOMEPAGE_VAR_PIHOLE_PASSWORD}}"
+
+- Monitoring:
+    - Grafana:
+        href: http://{{HOMEPAGE_VAR_SERVER_IP}}:3000
+        description: Dashboards & visualization
+        icon: grafana.png
+        widget:
+          type: grafana
+          url: http://{{HOMEPAGE_VAR_SERVER_IP}}:3000
+          username: "{{HOMEPAGE_VAR_GRAFANA_USER}}"
+          password: "{{HOMEPAGE_VAR_GRAFANA_PASSWORD}}"
+    - Prometheus:
+        href: http://{{HOMEPAGE_VAR_SERVER_IP}}:9090
+        description: Metrics database & scraper
+        icon: prometheus.png
+        widget:
+          type: prometheus
+          url: http://{{HOMEPAGE_VAR_SERVER_IP}}:9090
+    - Uptime Kuma:
+        href: http://{{HOMEPAGE_VAR_SERVER_IP}}:3001
+        description: Uptime & status monitoring
+        icon: uptime-kuma.png
+    - cAdvisor:
+        href: http://{{HOMEPAGE_VAR_SERVER_IP}}:8080
+        description: Per-container metrics
+        icon: mdi-docker
+
+- Logging:
+    - Dozzle:
+        href: http://{{HOMEPAGE_VAR_SERVER_IP}}:8082
+        description: Live container logs
+        icon: dozzle.png
+
+- Internet:
+    - Speedtest Tracker:
+        href: http://{{HOMEPAGE_VAR_SERVER_IP}}:8083
+        description: Internet speed & latency history
+        icon: speedtest-tracker.png
+        widget:
+          type: speedtest
+          url: http://{{HOMEPAGE_VAR_SERVER_IP}}:8083
