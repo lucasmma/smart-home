@@ -174,8 +174,8 @@ Hard `mem_limit` caps (worst case) vs. typical idle usage:
 | Service | Cap | Typical idle |
 |---|---:|---:|
 | Prometheus | 512M | ~250M |
+| Grafana | 512M | ~200M |
 | Speedtest Tracker | 384M | ~200M |
-| Grafana | 256M | ~150M |
 | Pi-hole | 256M | ~120M |
 | cAdvisor | 256M | ~90M |
 | Uptime Kuma | 256M | ~120M |

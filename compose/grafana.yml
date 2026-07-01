@@ -47,10 +47,14 @@ services:
     security_opt:
       - no-new-privileges:true
 
-    mem_limit: 256m
+    # Grafana v13 needs headroom during first-boot DB migrations; 256m throttles
+    # it into GC thrash and migrations never finish. 512m is comfortable.
+    mem_limit: 512m
 
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      # Use 127.0.0.1 (not localhost) — localhost resolves to IPv6 [::1] but
+      # Grafana listens on IPv4, which would make the probe a false negative.
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3000/api/health"]
       interval: 30s
       timeout: 5s
       retries: 3
