@@ -1,0 +1,10 @@
+# Route all alerts to Pushover. Groups similar alerts to avoid notification spam.
+apiVersion: 1
+
+policies:
+  - orgId: 1
+    receiver: Pushover
+    group_by: ["alertname"]
+    group_wait: 30s        # wait to batch initial alerts
+    group_interval: 5m     # min time between batches for a group
+    repeat_interval: 6h    # re-notify if still firing

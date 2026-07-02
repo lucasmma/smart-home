@@ -1,0 +1,275 @@
+# Alert rules for the home server. Each rule: refId A = Prometheus instant
+# query, refId C = threshold expression (the alert condition).
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: home-server
+    folder: Alerts
+    interval: 1m
+    rules:
+      # ---------- Temperature ----------
+      - uid: cpu_temp_high
+        title: CPU temperature high (>70C)
+        condition: C
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "Raspberry Pi CPU temperature is high (>70°C). Current: {{ $values.A.Value }}°C."
+        noDataState: OK
+        execErrState: Error
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: prometheus
+            model: { refId: A, instant: true, expr: "max(node_thermal_zone_temp)" }
+          - refId: C
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [70] }
+
+      - uid: cpu_temp_critical
+        title: CPU temperature very high (>80C)
+        condition: C
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: "Raspberry Pi CPU temperature is CRITICAL (>80°C — throttling risk). Current: {{ $values.A.Value }}°C."
+        noDataState: OK
+        execErrState: Error
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: prometheus
+            model: { refId: A, instant: true, expr: "max(node_thermal_zone_temp)" }
+          - refId: C
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [80] }
+
+      # ---------- Disk ----------
+      - uid: disk_over_50
+        title: Disk usage over 50%
+        condition: C
+        for: 10m
+        labels: { severity: info }
+        annotations:
+          summary: "Root filesystem usage passed 50%. Current: {{ $values.A.Value }}%."
+        noDataState: OK
+        execErrState: Error
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: 'max(100 * (1 - node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}))'
+          - refId: C
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [50] }
+
+      - uid: disk_over_80
+        title: Disk usage over 80%
+        condition: C
+        for: 5m
+        labels: { severity: critical }
+        annotations:
+          summary: "Root filesystem usage passed 80%. Current: {{ $values.A.Value }}%. Free up space soon."
+        noDataState: OK
+        execErrState: Error
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: 'max(100 * (1 - node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}))'
+          - refId: C
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [80] }
+
+      # ---------- RAM ----------
+      - uid: ram_high
+        title: RAM usage high (>80%)
+        condition: C
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "Memory usage is high (>80%). Current: {{ $values.A.Value }}%."
+        noDataState: OK
+        execErrState: Error
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: "(1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100"
+          - refId: C
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [80] }
+
+      - uid: ram_critical
+        title: RAM usage very high (>90%)
+        condition: C
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: "Memory usage is CRITICAL (>90%). Current: {{ $values.A.Value }}%. OOM risk."
+        noDataState: OK
+        execErrState: Error
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: "(1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100"
+          - refId: C
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [90] }
+
+      # ---------- Internet speed ----------
+      - uid: internet_slow
+        title: Internet download slow (<30 Mbps)
+        condition: C
+        for: 15m
+        labels: { severity: warning }
+        annotations:
+          summary: "Download speed is below 30 Mbps. Current: {{ $values.A.Value }} Mbps. (Adjust threshold to your plan.)"
+        noDataState: OK
+        execErrState: OK
+        data:
+          - refId: A
+            relativeTimeRange: { from: 3600, to: 0 }
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: "max(speedtest_tracker_download_bits) / 1000000"
+          - refId: C
+            relativeTimeRange: { from: 3600, to: 0 }
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: lt, params: [30] }
+
+      # ---------- Extras ----------
+      - uid: target_down
+        title: Prometheus target down
+        condition: C
+        for: 5m
+        labels: { severity: critical }
+        annotations:
+          summary: "Monitoring target '{{ $labels.job }}' is DOWN (Prometheus can't scrape it)."
+        noDataState: OK
+        execErrState: Error
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: prometheus
+            model: { refId: A, instant: true, expr: "up" }
+          - refId: C
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: lt, params: [1] }
+
+      - uid: container_mem_near_limit
+        title: Container near memory limit
+        condition: C
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "Container '{{ $labels.name }}' is using {{ $values.A.Value }}% of its memory limit."
+        noDataState: OK
+        execErrState: Error
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: '100 * container_memory_usage_bytes{name!=""} / (container_spec_memory_limit_bytes{name!=""} > 0)'
+          - refId: C
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [90] }
+
+      - uid: cpu_sustained_high
+        title: CPU usage sustained high (>90%)
+        condition: C
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "CPU usage has been above 90% for 10 minutes. Current: {{ $values.A.Value }}%."
+        noDataState: OK
+        execErrState: Error
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: "100 - (avg(rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)"
+          - refId: C
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [90] }

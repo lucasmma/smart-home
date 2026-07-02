@@ -1,0 +1,17 @@
+# Pushover contact point. Secrets come from env vars (set in .env, injected by
+# compose) so nothing sensitive is committed. Grafana expands ${VAR} at load.
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: Pushover
+    receivers:
+      - uid: pushover_receiver
+        type: pushover
+        settings:
+          apiToken: ${PUSHOVER_TOKEN}
+          userKey: ${PUSHOVER_USER_KEY}
+          # Pushover priority per state (-2..2). 1 = high for firing alerts.
+          priority: "1"
+          okPriority: "0"
+        disableResolveMessage: false
