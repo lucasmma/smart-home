@@ -29,6 +29,9 @@ services:
       GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
       GF_NEWS_NEWS_FEED_ENABLED: "false"
       GF_LOG_LEVEL: "warn"
+      # External URL used in generated links (e.g. alert notifications) so they
+      # point at the Pi, not localhost.
+      GF_SERVER_ROOT_URL: "http://${SERVER_IP}:3000"
       # Pushover secrets for provisioned alerting (referenced as ${...} in
       # configs/grafana/provisioning/alerting/contactpoints.yaml).
       PUSHOVER_TOKEN: ${PUSHOVER_TOKEN}
