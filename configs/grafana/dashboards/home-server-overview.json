@@ -248,7 +248,7 @@
       "gridPos": { "h": 8, "w": 8, "x": 0, "y": 29 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "speedtest_download_bits_per_second", "legendFormat": "download" }
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max(speedtest_tracker_download_bits)", "legendFormat": "download" }
       ],
       "fieldConfig": { "defaults": { "unit": "bps", "custom": { "drawStyle": "line", "fillOpacity": 15 } }, "overrides": [] }
     },
@@ -259,7 +259,7 @@
       "gridPos": { "h": 8, "w": 8, "x": 8, "y": 29 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "speedtest_upload_bits_per_second", "legendFormat": "upload" }
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max(speedtest_tracker_upload_bits)", "legendFormat": "upload" }
       ],
       "fieldConfig": { "defaults": { "unit": "bps", "custom": { "drawStyle": "line", "fillOpacity": 15 } }, "overrides": [] }
     },
@@ -270,7 +270,7 @@
       "gridPos": { "h": 8, "w": 8, "x": 16, "y": 29 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "speedtest_ping", "legendFormat": "ping" }
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max(speedtest_tracker_ping_ms)", "legendFormat": "ping" }
       ],
       "fieldConfig": { "defaults": { "unit": "ms", "custom": { "drawStyle": "line", "fillOpacity": 15 } }, "overrides": [] }
     }
