@@ -175,15 +175,15 @@ Hard `mem_limit` caps (worst case) vs. typical idle usage:
 |---|---:|---:|
 | Prometheus | 512M | ~250M |
 | Grafana | 512M | ~200M |
+| cAdvisor | 384M | ~195M |
 | Speedtest Tracker | 384M | ~200M |
 | Pi-hole | 256M | ~120M |
-| cAdvisor | 256M | ~90M |
-| Uptime Kuma | 256M | ~120M |
+| Uptime Kuma | 256M | ~150M |
 | Homepage | 256M | ~100M |
+| Tailscale | 192M | ~68M |
 | Node Exporter | 128M | ~20M |
-| Dozzle | 128M | ~15M |
-| Tailscale | 128M | ~40M |
-| **Total (typical)** | | **~1.1 GB** |
+| Dozzle | 128M | ~75M |
+| **Total (typical)** | | **~1.3 GB** |
 
 Comfortably within 4 GB, leaving headroom for the OS and page cache. Caps
 prevent any single service from OOM-ing the Pi.
