@@ -28,6 +28,8 @@ include:
   - compose/homepage.yml
   # --- Internet quality ---
   - compose/speedtest-tracker.yml
+  # --- ESP32 desk display aggregator ---
+  - compose/companion-api.yml
   # --- Remote access ---
   - compose/tailscale.yml
 

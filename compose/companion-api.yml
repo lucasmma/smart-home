@@ -1,0 +1,73 @@
+# =============================================================================
+#  companion-api — homelab aggregator API for the ESP32 desk display
+#
+#  Docs:  services/companion-api/README.md
+#  Builds from ./services/companion-api and exposes ONE endpoint,
+#  GET /api/display, aggregating Prometheus + Pi-hole + Speedtest Tracker into a
+#  single JSON document the ESP32 "Homelab Companion" firmware consumes.
+# =============================================================================
+
+services:
+  companion-api:
+    build:
+      context: ./services/companion-api
+      dockerfile: Dockerfile
+    image: companion-api:local
+    container_name: companion-api
+    hostname: companion-api
+    restart: unless-stopped
+
+    environment:
+      TZ: ${TZ}
+      PORT: "8090"
+      HOST: "0.0.0.0"
+      LOG_LEVEL: ${COMPANION_LOG_LEVEL:-info}
+      # Optional shared bearer token (blank => open on the LAN). Must match the
+      # ESP32 firmware's API_TOKEN in Config.h when set.
+      API_TOKEN: ${COMPANION_API_TOKEN:-}
+      CACHE_TTL_MS: ${COMPANION_CACHE_TTL_MS:-2000}
+      SOURCE_TIMEOUT_MS: ${COMPANION_SOURCE_TIMEOUT_MS:-4000}
+
+      # --- Prometheus (reachable by service name on the homelab network) ---
+      PROM_URL: http://prometheus:9090
+      DISK_MOUNTPOINT: ${COMPANION_DISK_MOUNTPOINT:-/}
+      RASPBERRY_UP_JOB: node-exporter
+      UBUNTU_UP_QUERY: ${COMPANION_UBUNTU_UP_QUERY:-}
+
+      # --- Pi-hole v6 (host-network mode => reach via the Pi's LAN IP) ---
+      PIHOLE_URL: ${COMPANION_PIHOLE_URL:-http://${SERVER_IP}:8081}
+      PIHOLE_PASSWORD: ${PIHOLE_PASSWORD}
+
+      # --- Speedtest Tracker (reachable by service name on the homelab network) ---
+      SPEEDTEST_URL: http://speedtest-tracker
+      SPEEDTEST_TOKEN: ${COMPANION_SPEEDTEST_TOKEN:-}
+      SPEEDTEST_MAX_AGE_MS: ${COMPANION_SPEEDTEST_MAX_AGE_MS:-10800000}
+
+    ports:
+      - "8090:8090"
+
+    networks:
+      - homelab
+
+    security_opt:
+      - no-new-privileges:true
+
+    mem_limit: 128m
+
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8090/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  homelab:
+    external: true
+    name: homelab
