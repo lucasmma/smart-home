@@ -60,6 +60,13 @@ export class Aggregator {
       this.log.warn({ err: speed.reason?.message ?? speed.reason }, "speedtest source failed");
     }
 
+    // Per-source liveness for THIS refresh. A disabled Pi-hole isn't a failure.
+    next.health = {
+      prometheus: prom.status === "fulfilled",
+      pihole: this.cfg.pihole.url ? pihole.status === "fulfilled" : true,
+      speedtest: speed.status === "fulfilled",
+    };
+
     this.cache.store(next, now);
     return next;
   }

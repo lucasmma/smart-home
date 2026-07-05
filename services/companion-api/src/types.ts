@@ -12,6 +12,15 @@ import { z } from "zod";
  *   - `ping` is milliseconds (rounded)
  *   - `adsBlocked` / `queries` are cumulative counters for the current day
  */
+/** Per-source liveness for the current refresh: false => that source's fields
+ *  are stale (frozen at their last-good value). The firmware shows a header
+ *  warning when any of these is false. */
+export const SourceHealthSchema = z.object({
+  prometheus: z.boolean(),
+  pihole: z.boolean(),
+  speedtest: z.boolean(),
+});
+
 export const DisplayDataSchema = z.object({
   internet: z.boolean(),
   raspberry: z.boolean(),
@@ -24,6 +33,7 @@ export const DisplayDataSchema = z.object({
   ping: z.number().int().min(0),
   adsBlocked: z.number().int().min(0),
   queries: z.number().int().min(0),
+  health: SourceHealthSchema,
 });
 
 export type DisplayData = z.infer<typeof DisplayDataSchema>;
@@ -45,4 +55,5 @@ export const EMPTY_DISPLAY: DisplayData = {
   ping: 0,
   adsBlocked: 0,
   queries: 0,
+  health: { prometheus: false, pihole: false, speedtest: false },
 };
