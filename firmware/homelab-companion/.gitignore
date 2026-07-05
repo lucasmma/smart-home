@@ -1,0 +1,8 @@
+.pio/
+.pioenvs/
+.piolibdeps/
+.vscode/
+*.pyc
+
+# Firmware secrets — the ".env" (WiFi creds, API host/token). Never commit.
+secrets.ini
