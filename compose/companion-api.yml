@@ -9,8 +9,11 @@
 
 services:
   companion-api:
+    # Absolute path via ${DATA_ROOT}: with Compose `include:`, relative paths
+    # resolve against this file's dir (compose/), so we anchor to the repo root
+    # the same way every service anchors its bind mounts.
     build:
-      context: ./services/companion-api
+      context: ${DATA_ROOT}/services/companion-api
       dockerfile: Dockerfile
     image: companion-api:local
     container_name: companion-api
