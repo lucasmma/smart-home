@@ -56,7 +56,12 @@ services:
     security_opt:
       - no-new-privileges:true
 
-    mem_limit: 128m
+    # Node's own runtime binary + node_modules are memory-mapped (~100 MB of
+    # file-backed code pages). At 128m the cgroup couldn't hold that working set
+    # alongside the heap, so the kernel evicted and re-faulted those pages in a
+    # tight loop (~73 MB/s of disk reads, memory.pressure ~94%), saturating the
+    # SSD and stalling every other service. 256m keeps the code pages resident.
+    mem_limit: 256m
 
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://localhost:8090/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
