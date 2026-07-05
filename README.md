@@ -24,6 +24,7 @@ thing is designed to be **recreated from scratch**, **survive reboots**, and be
 | Dashboard | **[Homepage](docs/homepage.md)** | Landing page linking every service |
 | Internet | **[Speedtest Tracker](docs/speedtest-tracker.md)** | Internet speed/latency history |
 | Remote | **[Tailscale](docs/tailscale.md)** | Secure remote access (no port-forwarding) |
+| Companion | **[companion-api](services/companion-api/)** | Aggregates homelab state into one JSON for the ESP32 desk display |
 
 Each service has its own file in [`compose/`](compose/) and a full doc in
 [`docs/`](docs/) (what it does, why, credentials, ports, storage, troubleshooting).
@@ -83,6 +84,35 @@ flowchart TB
 
 ---
 
+## 🖥️ Homelab Companion (ESP32 desk display)
+
+A physical desk device that shows homelab status on an SSD1306 OLED, rotating
+through pages (Home, Infra, Resources, Network, Pi-hole, About). Two pieces,
+both in this repo:
+
+- **[`services/companion-api/`](services/companion-api/)** — a small **Fastify +
+  TypeScript** service that aggregates Prometheus, Pi-hole and Speedtest Tracker
+  into a single JSON endpoint (`GET /api/display`), with per-source health so
+  the device can flag stale/degraded data. Runs in the stack via
+  [`compose/companion-api.yml`](compose/companion-api.yml) on port **8090**.
+- **[`firmware/homelab-companion/`](firmware/homelab-companion/)** — the **ESP32**
+  firmware (**PlatformIO + U8g2**). It polls that one endpoint and renders the
+  pages; secrets (WiFi, API host) live in a git-ignored `secrets.ini`.
+
+```mermaid
+flowchart LR
+    esp["ESP32 + OLED<br/>(firmware/homelab-companion)"] -->|GET /api/display| api["companion-api :8090<br/>(services/companion-api)"]
+    api -->|PromQL| prom["Prometheus"]
+    api -->|v6 API| pihole["Pi-hole"]
+    api -->|latest result| speed["Speedtest Tracker"]
+```
+
+Keeping the aggregation on the Pi makes the firmware trivial (one request, one
+JSON) and easy to evolve. Setup and flashing instructions live in each
+subproject's README.
+
+---
+
 ## 📁 Repository structure
 
 ```
@@ -98,6 +128,10 @@ home-server/
 │   ├── prometheus/…          # scrape config (+ git-ignored token)
 │   ├── homepage/…            # dashboard YAML
 │   └── pihole/…
+├── services/                 # app services built from source
+│   └── companion-api/        # ESP32 aggregator API (Fastify + TypeScript)
+├── firmware/                 # microcontroller firmware
+│   └── homelab-companion/    # ESP32 desk display (PlatformIO + U8g2)
 ├── volumes/                  # persistent data (git-ignored)
 ├── scripts/                  # install / update / backup / restore
 └── docs/                     # per-service documentation
@@ -158,6 +192,7 @@ Replace `<IP>` with your `SERVER_IP`.
 | Uptime Kuma | `http://<IP>:3001` | 3001 | set on first launch |
 | Dozzle | `http://<IP>:8082` | 8082 | none |
 | Speedtest Tracker | `http://<IP>:8083` | 8083 | `admin@example.com` / `password` |
+| Companion API | `http://<IP>:8090/api/display` | 8090 | optional bearer token |
 | Node Exporter | *(internal only)* | 9100 | — |
 | Tailscale | *(admin console)* | — | auth key |
 
