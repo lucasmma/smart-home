@@ -180,7 +180,8 @@ void App::bootSequence() {
     char b[BOOT_LINE_LEN];
     snprintf(b, sizeof(b), "Connected %s", wifi_.ip());
     bootStep(b);
-    kickNtp(); // start the NTP sync early, during the boot splash
+    // No NTP kick here: the clock is set from the API epoch on the first fetch.
+    // NTP only engages via updateClock() as a fallback if no epoch ever arrives.
   } else {
     bootStep("WiFi failed (retrying)");
   }
@@ -274,11 +275,13 @@ void App::updateClock() {
     return;
   }
 
-  // Fallback (networks that permit NTP): (re)request on the retry interval.
+  // Fallback (networks that permit NTP): only engages after NTP_RETRY_MS with no
+  // API epoch. In normal operation epoch arrives within ~1-2s and sets the clock
+  // first, so this never fires and no NTP traffic is generated.
   const uint32_t now = millis();
-  if (wifi_.isConnected() &&
-      (lastNtpAttemptMs_ == 0 || (now - lastNtpAttemptMs_) > config::NTP_RETRY_MS)) {
-    LOG_WARN("clock not set yet (no API epoch, NTP pending), retrying NTP");
+  if (wifi_.isConnected() && (now - lastNtpAttemptMs_) > config::NTP_RETRY_MS) {
+    LOG_WARN("clock not set from API after %lus, falling back to NTP",
+             static_cast<unsigned long>(config::NTP_RETRY_MS / 1000));
     kickNtp();
   }
 }
