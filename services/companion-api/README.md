@@ -30,7 +30,7 @@ If `API_TOKEN` is set, `/api/display` requires `Authorization: Bearer <token>`.
 |--------------------------------|-------------------|--------|
 | `cpu` / `ram` / `disk`         | Prometheus        | node-exporter instant queries |
 | `raspberry` / `ubuntu`         | Prometheus        | `up{...}` per host |
-| `download` / `upload` / `ping` | Speedtest Tracker | `/api/v1/results/latest` (bytes/s → Mbps) |
+| `download` / `upload` / `ping` | Speedtest Tracker | public `/api/speedtest/latest` (Mbps; no token) |
 | `internet`                     | Speedtest Tracker | latest result is recent **and** non-zero |
 | `adsBlocked` / `queries`       | Pi-hole v6        | `/api/auth` → `/api/stats/summary` |
 

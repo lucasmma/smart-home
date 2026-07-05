@@ -43,6 +43,7 @@ services:
 
       # --- Speedtest Tracker (reachable by service name on the homelab network) ---
       SPEEDTEST_URL: http://speedtest-tracker
+      # Usually blank: we read the public /api/speedtest/latest endpoint.
       SPEEDTEST_TOKEN: ${COMPANION_SPEEDTEST_TOKEN:-}
       SPEEDTEST_MAX_AGE_MS: ${COMPANION_SPEEDTEST_MAX_AGE_MS:-10800000}
 
