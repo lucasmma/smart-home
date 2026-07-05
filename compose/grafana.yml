@@ -54,9 +54,12 @@ services:
     security_opt:
       - no-new-privileges:true
 
-    # Grafana v13 needs headroom during first-boot DB migrations; 256m throttles
-    # it into GC thrash and migrations never finish. 512m is comfortable.
-    mem_limit: 512m
+    # Grafana v13 needs real headroom: 256m never finishes first-boot DB
+    # migrations, and 512m proved too tight in practice — steady-state it pinned
+    # memory.current at the 512m cap with ~36M file-page refaults and
+    # memory.pressure ~44%, thrashing its code pages off disk (~300 MB/s reads)
+    # and taking the whole box down. 768m holds the working set resident.
+    mem_limit: 768m
 
     healthcheck:
       # Use 127.0.0.1 (not localhost) — localhost resolves to IPv6 [::1] but
