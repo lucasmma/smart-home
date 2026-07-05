@@ -40,6 +40,7 @@ void App::begin() {
 
   // Register periodic jobs (order doesn't matter; each has its own interval).
   scheduler_.every(config::DATA_INTERVAL_MS, [this] { refreshData(); });
+  scheduler_.every(config::CLOCK_INTERVAL_MS, [this] { updateClock(); });
   scheduler_.every(config::WIFI_CHECK_MS, [this] { refreshWifi(); });
   scheduler_.every(config::PAGE_ROTATE_MS, [this] { rotatePage(); });
   scheduler_.every(config::DISPLAY_INTERVAL_MS, [this] { renderFrame(); });
@@ -47,6 +48,7 @@ void App::begin() {
   // Prime state so the first frame isn't blank.
   refreshWifi();
   refreshData();
+  updateClock();
 
   LOG_INFO("Dashboard running (%u pages)", pageCount_);
 }
@@ -73,8 +75,6 @@ void App::refreshData() {
   // Degraded: last good fetch reported a source as failing (backend reachable).
   state_.degraded = !state_.stale && !(data_.health.prometheus &&
                                        data_.health.pihole && data_.health.speedtest);
-
-  updateClock();
 }
 
 void App::refreshWifi() {

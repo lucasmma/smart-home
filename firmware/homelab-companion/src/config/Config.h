@@ -62,15 +62,17 @@ inline constexpr uint8_t SCREEN_HEIGHT = 64;
 
 // --- Scheduler intervals (milliseconds) -------------------------------------
 inline constexpr uint32_t DISPLAY_INTERVAL_MS = 33;   // ~30 FPS
-inline constexpr uint32_t DATA_INTERVAL_MS = 1000;    // provider refresh
+inline constexpr uint32_t DATA_INTERVAL_MS = 10000;   // provider refresh (API poll)
+inline constexpr uint32_t CLOCK_INTERVAL_MS = 1000;   // clock string refresh (local)
 inline constexpr uint32_t PAGE_ROTATE_MS = 5000;      // page rotation
 inline constexpr uint32_t WIFI_CHECK_MS = 10000;      // wifi status poll
 
 // --- UI ---------------------------------------------------------------------
 inline constexpr uint32_t TRANSITION_MS = 350; // page slide duration
 // If no successful fetch within this window, the header shows a "stale" warning
-// (backend/Pi/network unreachable). Should comfortably exceed DATA_INTERVAL_MS.
-inline constexpr uint32_t STALE_AFTER_MS = 15000;
+// (backend/Pi/network unreachable). Should comfortably exceed DATA_INTERVAL_MS so
+// a single missed/slow poll doesn't false-flag stale (~3x the poll interval).
+inline constexpr uint32_t STALE_AFTER_MS = 35000;
 
 // --- Firmware ---------------------------------------------------------------
 #ifndef FW_VERSION
