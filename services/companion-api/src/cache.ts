@@ -26,6 +26,15 @@ export class SnapshotCache {
     return this.updatedAt !== 0 && nowMs - this.updatedAt < this.ttlMs;
   }
 
+  /**
+   * True once at least one real refresh has landed. Distinguishes a warm cache
+   * (safe to serve stale while revalidating) from cold start (must await the
+   * first fetch so the response isn't the empty placeholder).
+   */
+  get hasData(): boolean {
+    return this.updatedAt !== 0;
+  }
+
   store(data: DisplayData, nowMs: number): void {
     this.snapshot = data;
     this.updatedAt = nowMs;

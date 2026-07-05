@@ -13,13 +13,26 @@ import type { DisplayData } from "./types.js";
  * last known good snapshot, and the failure is logged.
  */
 export class Aggregator {
+  /**
+   * The refresh currently fanning out to sources, if any. Guarantees
+   * single-flight: a burst of polls (or a slow upstream) can never launch more
+   * than one concurrent fanout, which is what turned any transient slowdown
+   * into a self-amplifying stampede across Prometheus/Pi-hole/Speedtest.
+   */
+  private inflight: Promise<DisplayData> | null = null;
+
   constructor(
     private readonly cfg: Config,
     private readonly cache: SnapshotCache,
     private readonly log: FastifyBaseLogger,
   ) {}
 
-  /** Returns a snapshot, refetching sources only when the cache has gone stale. */
+  /**
+   * Returns a snapshot. Fresh cache is served directly; a stale cache is served
+   * immediately (stale-while-revalidate) while a single background refresh runs.
+   * Only a cold start — before any refresh has landed — awaits the fetch, so a
+   * slow source never blocks the response or lets requests pile up.
+   */
   async getDisplay(): Promise<DisplayData> {
     const now = Date.now();
     if (this.cache.isFresh(now)) {
@@ -28,6 +41,30 @@ export class Aggregator {
       return snap;
     }
 
+    // Kick a refresh only if one isn't already running (single-flight).
+    if (!this.inflight) {
+      this.inflight = this.refresh().finally(() => {
+        this.inflight = null;
+      });
+      // A background refresh must not crash the process on rejection; the
+      // awaiting cold-start path still sees the error, warm callers don't care.
+      this.inflight.catch(() => {});
+    }
+
+    // Warm cache: hand back the last-good snapshot now, let the refresh land in
+    // the background. Polling frequency is thus decoupled from upstream load.
+    if (this.cache.hasData) {
+      const snap = this.cache.lastGood;
+      snap.epoch = Math.floor(now / 1000);
+      return snap;
+    }
+
+    // Cold start: no snapshot yet — all concurrent callers await the one fetch.
+    return this.inflight;
+  }
+
+  /** Fans out to every source once and stores the merged snapshot. */
+  private async refresh(): Promise<DisplayData> {
     const prev = this.cache.lastGood;
 
     const [prom, pihole, speed] = await Promise.allSettled([
@@ -70,9 +107,13 @@ export class Aggregator {
       pihole: this.cfg.pihole.url ? pihole.status === "fulfilled" : true,
       speedtest: speed.status === "fulfilled",
     };
-    next.epoch = Math.floor(now / 1000);
+    // Timestamp at completion, not at request time: the fanout can take up to
+    // SOURCE_TIMEOUT_MS, and dating the snapshot from when data actually landed
+    // is what keeps the TTL honest.
+    const doneAt = Date.now();
+    next.epoch = Math.floor(doneAt / 1000);
 
-    this.cache.store(next, now);
+    this.cache.store(next, doneAt);
     return next;
   }
 }
