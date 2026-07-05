@@ -3,8 +3,10 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <sys/time.h>
 
 #include "config/Config.h"
 #include "core/Logger.h"
@@ -20,6 +22,11 @@ App::App(DisplayManager &dm, WifiManager &wifi, IDataProvider &provider,
 //  Lifecycle
 // -----------------------------------------------------------------------------
 void App::begin() {
+  // Apply the local timezone up front so both API-epoch and NTP paths render
+  // local time via getLocalTime().
+  setenv("TZ", config::POSIX_TZ, 1);
+  tzset();
+
   provider_.begin();
 
   if (!dm_.begin()) {
@@ -67,10 +74,7 @@ void App::refreshData() {
   state_.degraded = !state_.stale && !(data_.health.prometheus &&
                                        data_.health.pihole && data_.health.speedtest);
 
-  struct tm tinfo;
-  if (getLocalTime(&tinfo, 5)) {
-    strftime(state_.timeStr, sizeof(state_.timeStr), "%H:%M:%S", &tinfo);
-  }
+  updateClock();
 }
 
 void App::refreshWifi() {
@@ -78,7 +82,6 @@ void App::refreshWifi() {
   state_.rssi = wifi_.rssi();
   strncpy(state_.ip, wifi_.ip(), sizeof(state_.ip) - 1);
   state_.ip[sizeof(state_.ip) - 1] = '\0';
-  syncTimeIfNeeded();
 }
 
 void App::rotatePage() {
@@ -177,7 +180,7 @@ void App::bootSequence() {
     char b[BOOT_LINE_LEN];
     snprintf(b, sizeof(b), "Connected %s", wifi_.ip());
     bootStep(b);
-    syncTimeIfNeeded();
+    kickNtp(); // start the NTP sync early, during the boot splash
   } else {
     bootStep("WiFi failed (retrying)");
   }
@@ -241,13 +244,43 @@ void App::scanI2C() {
   }
 }
 
-void App::syncTimeIfNeeded() {
-  if (ntpConfigured_ || !wifi_.isConnected()) {
+void App::kickNtp() {
+  if (!wifi_.isConnected()) {
     return;
   }
-  configTzTime(config::POSIX_TZ, config::NTP_SERVER);
-  ntpConfigured_ = true;
-  LOG_INFO("NTP configured (%s, TZ=%s)", config::NTP_SERVER, config::POSIX_TZ);
+  configTzTime(config::POSIX_TZ, config::NTP_SERVER, config::NTP_SERVER_2,
+               config::NTP_SERVER_3);
+  lastNtpAttemptMs_ = millis();
+  LOG_INFO("NTP sync requested (%s / %s / %s, TZ=%s)", config::NTP_SERVER,
+           config::NTP_SERVER_2, config::NTP_SERVER_3, config::POSIX_TZ);
+}
+
+void App::updateClock() {
+  // Primary source: the Pi's clock, delivered with the dashboard data over the
+  // already-working HTTP path. Set the RTC once from it; it then free-runs.
+  if (!timeSynced_ && data_.epoch > 0) {
+    const struct timeval tv = {.tv_sec = static_cast<time_t>(data_.epoch), .tv_usec = 0};
+    settimeofday(&tv, nullptr);
+    LOG_INFO("clock set from API epoch=%lu", static_cast<unsigned long>(data_.epoch));
+  }
+
+  struct tm tinfo;
+  if (getLocalTime(&tinfo, 5)) {
+    strftime(state_.timeStr, sizeof(state_.timeStr), "%H:%M:%S", &tinfo);
+    if (!timeSynced_) {
+      timeSynced_ = true;
+      LOG_INFO("clock synced=%s", state_.timeStr);
+    }
+    return;
+  }
+
+  // Fallback (networks that permit NTP): (re)request on the retry interval.
+  const uint32_t now = millis();
+  if (wifi_.isConnected() &&
+      (lastNtpAttemptMs_ == 0 || (now - lastNtpAttemptMs_) > config::NTP_RETRY_MS)) {
+    LOG_WARN("clock not set yet (no API epoch, NTP pending), retrying NTP");
+    kickNtp();
+  }
 }
 
 void App::pause(uint32_t ms) {

@@ -22,7 +22,11 @@ export class Aggregator {
   /** Returns a snapshot, refetching sources only when the cache has gone stale. */
   async getDisplay(): Promise<DisplayData> {
     const now = Date.now();
-    if (this.cache.isFresh(now)) return this.cache.lastGood;
+    if (this.cache.isFresh(now)) {
+      const snap = this.cache.lastGood;
+      snap.epoch = Math.floor(now / 1000); // keep the clock current even from cache
+      return snap;
+    }
 
     const prev = this.cache.lastGood;
 
@@ -66,6 +70,7 @@ export class Aggregator {
       pihole: this.cfg.pihole.url ? pihole.status === "fulfilled" : true,
       speedtest: speed.status === "fulfilled",
     };
+    next.epoch = Math.floor(now / 1000);
 
     this.cache.store(next, now);
     return next;

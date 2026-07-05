@@ -41,7 +41,13 @@ inline constexpr char API_TOKEN[] = CFG_API_TOKEN;
 inline constexpr uint32_t HTTP_TIMEOUT_MS = 4000;
 
 // --- Time (NTP) -------------------------------------------------------------
+// Three independent servers: if DNS/one provider is blocked (e.g. via Pi-hole),
+// the others still resolve. The clock re-syncs on every boot (no battery RTC).
 inline constexpr char NTP_SERVER[] = "pool.ntp.org";
+inline constexpr char NTP_SERVER_2[] = "time.google.com";
+inline constexpr char NTP_SERVER_3[] = "time.cloudflare.com";
+// How often to re-request a sync while the clock is still unset.
+inline constexpr uint32_t NTP_RETRY_MS = 10000;
 // POSIX TZ string. Default: America/Sao_Paulo (UTC-3, no DST).
 inline constexpr char POSIX_TZ[] = "<-03>3";
 

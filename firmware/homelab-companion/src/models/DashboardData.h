@@ -31,6 +31,7 @@ struct DashboardData {
   uint32_t adsBlocked = 0;
   uint32_t queries = 0;
   SourceHealth health;
+  uint32_t epoch = 0; // Pi's UTC time (unix seconds); 0 = not provided
 };
 
 struct AppState {

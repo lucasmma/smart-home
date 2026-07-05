@@ -34,6 +34,9 @@ export const DisplayDataSchema = z.object({
   adsBlocked: z.number().int().min(0),
   queries: z.number().int().min(0),
   health: SourceHealthSchema,
+  // The Pi's current UTC time (unix seconds). Lets the device set its clock
+  // over the already-working HTTP path instead of relying on NTP/DNS.
+  epoch: z.number().int().min(0),
 });
 
 export type DisplayData = z.infer<typeof DisplayDataSchema>;
@@ -56,4 +59,5 @@ export const EMPTY_DISPLAY: DisplayData = {
   adsBlocked: 0,
   queries: 0,
   health: { prometheus: false, pihole: false, speedtest: false },
+  epoch: 0,
 };

@@ -35,7 +35,8 @@ private:
   void bootSequence();
   void bootStep(const char *line);
   void scanI2C();
-  void syncTimeIfNeeded();
+  void kickNtp();     // (re)issue an NTP sync request (multi-server)
+  void updateClock(); // refresh timeStr; keep retrying NTP until synced
   void pause(uint32_t ms); // non-blocking spin (boot only; no delay())
 
   // Screens.
@@ -57,8 +58,9 @@ private:
   bool transitioning_ = false;
   uint32_t transitionStart_ = 0;
 
-  bool ntpConfigured_ = false;
-  uint32_t lastFetchMs_ = 0; // millis() of the last successful provider fetch
+  bool timeSynced_ = false;       // NTP has set the clock at least once
+  uint32_t lastNtpAttemptMs_ = 0; // millis() of the last NTP (re)config
+  uint32_t lastFetchMs_ = 0;      // millis() of the last successful provider fetch
 
   // Boot log (shows the last few lines on the OLED).
   static constexpr uint8_t MAX_BOOT_LINES = 8;

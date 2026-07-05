@@ -67,5 +67,7 @@ bool HttpProvider::fetch(DashboardData &out) {
   out.health.pihole = health["pihole"] | true;
   out.health.speedtest = health["speedtest"] | true;
 
+  out.epoch = doc["epoch"] | 0UL;
+
   return true;
 }
